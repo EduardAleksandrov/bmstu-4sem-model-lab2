@@ -2,7 +2,7 @@
 #include "ui_mainwindow.h"
 
 #include <QDebug>
-#include<cmath>
+#include <cmath>
 
 #include <QStandardItemModel>
 #include "QStandardItem"
@@ -206,27 +206,125 @@ void MainWindow::on_pushButton_3_clicked()
     {
         p_table.push_back(x[i]);
     }
-    for(int i = 0; i<p_table.size(); i++)
-        qDebug()<<"p["<< i<<"] = "<< p_table[i];
+//    for(int i = 0; i<p_table.size(); i++)
+//        qDebug()<<"p["<< i<<"] = "<< p_table[i];
 // расчет методом Гаусса ---конец
+
+// считаем время
+
+//создание матрицы расчетной
+QVector<QVector<double>> matrix_t;
+for(int i = 0; i < matrix_lambda.size(); i++)
+{
+    matrix_t.push_back(QVector<double>());
+    for(int j = 0; j< matrix_lambda.back().size(); j++)
+    {
+        matrix_t.back().push_back(0.0);
+    }
+}
+
+
+double delta_t = 0.001;
+double delta_tt = 0.001; //считаем время
+QVector<double> result_t; //результирующие время
+for(int i = 0; i< matrix_t.size(); i++)
+{
+    result_t.push_back(0.0);
+}
+double eps = 0.2;
+int ex = 0;
+QVector <double> Pt(matrix_t.size(), 0.0); //при каждой итоерации пересчитывается вероятность
+Pt[0]=1.0; //Начальные условия вероятностей
+QVector <bool> check(matrix_t.size(), 0); // проверка, на уже заполнение i индекса матрицы result_t
+
+
+while(true)
+{
+
+// заполнение по строкам
+    double sum_t = 0.0;
+    for(int i = 0; i < matrix_lambda.size(); i++)
+    {
+        sum_t = 0.0;
+        for(int j = 0;j<matrix_lambda.back().size(); j++)
+        {
+            sum_t+=matrix_lambda[i][j];
+        }
+        matrix_t[i][i] = Pt[i]*(1-sum_t*delta_t);
+    }
+//// заполнение по столбцам
+    for(int i = 0; i < matrix_lambda.size(); i++)
+    {
+        for(int j = 0;j<matrix_lambda.back().size(); j++)
+        {
+            if(i != j) matrix_t[i][j] = Pt[j]*matrix_lambda[j][i]*delta_t;
+//           qDebug() << matrix_t[i][j];
+        }
+    }
+
+    double sum_tt = 0.0;
+    for(int i = 0; i<matrix_t.size(); i++)
+    {
+        sum_tt = 0.0;
+        for(int j = 0; j< matrix_t.back().size(); j++)
+        {
+            sum_tt += matrix_t[i][j];
+        }
+//        bool x = std::fabs(p_table[i]-sum_tt)<eps;
+//        qDebug() << p_table[i] << " " << sum_tt << " " << x << " "<< std::fabs(p_table[i]-sum_tt)  << delta_tt;
+        Pt[i] = sum_tt;
+        if(sum_tt <0.001 && check[i] == 0)
+        {
+            result_t[i]=delta_tt;
+            ex+=1;
+            check[i] = 1;
+        }
+        if(std::fabs(p_table[i]-sum_tt) < eps && check[i] == 0)
+        {
+            result_t[i]=delta_tt;
+//            qDebug() << p_table[i] << " " << sum_tt << " " << delta_t;
+//            qDebug() << result_t[i];
+            ex+=1;
+            check[i] = 1;
+        }
+//        qDebug()<<sum_tt;
+    }
+
+    delta_tt+= 0.0001;
+//    delta_t+= 0.001;
+    if(ex == result_t.size()) break;
+}
+
+//for(int i = 0; i< result_t.size(); i++)
+//{
+//    qDebug() << result_t[i];
+//}
+
+
+
+
+// считаем время --- конец
 
 // рисуем таблицу
     ui->tableView->setModel(NULL);
     QStandardItemModel* model = new QStandardItemModel();
     model->setRowCount(p_table.size());
-    model->setColumnCount(2);
+    model->setColumnCount(3);
 
     // установка заголовков таблицы
 
         model->setHeaderData(0, Qt::Horizontal, "P (вероятности)");
-        model->setHeaderData(1, Qt::Horizontal, "Data");
+        model->setHeaderData(1, Qt::Horizontal, "P Data");
+        model->setHeaderData(2, Qt::Horizontal, "Time");
 
     for(int i = 0; i < p_table.size(); i++)
     {
-        QString valueAsString = QString::number(p_table[i]);
         QString p = QString("P%1").arg(i+1);
+        QString valueAsString = QString::number(p_table[i]);
+        QString valueAsString_time = QString::number(result_t[i]*100);
         model->setItem(i, 0, new QStandardItem(p));
         model->setItem(i, 1, new QStandardItem(valueAsString));
+        model->setItem(i, 2, new QStandardItem(valueAsString_time));
     }
 
     ui->tableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch); //ширина
