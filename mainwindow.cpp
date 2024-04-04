@@ -7,6 +7,7 @@
 #include <QStandardItemModel>
 #include "QStandardItem"
 #include <QTableView>
+#include <iostream>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -25,6 +26,9 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_pushButton_clicked()
 {
+    ui->tableView->setModel(NULL);
+    ui->lineEdit_3->clear();
+
     matrix_txt.clear();
     for (int i = 0; i < ui->gridLayout->count(); i++)
     {
@@ -64,6 +68,9 @@ void MainWindow::on_pushButton_clicked()
 
 void MainWindow::on_pushButton_2_clicked()
 {
+    ui->tableView->setModel(NULL);
+    ui->lineEdit_3->clear();
+
     matrix_lambda.clear();
     QString a;
     int data;
@@ -112,7 +119,7 @@ void MainWindow::on_pushButton_3_clicked()
         sum = 0;
         for(int j = 0;j<matrix_lambda.back().size(); j++)
         {
-            sum+=matrix_lambda[i][j];
+            if(i != j) sum+=matrix_lambda[i][j];
         }
         sum = sum*(-1);
         matrix[i][i] = sum;
@@ -125,12 +132,20 @@ void MainWindow::on_pushButton_3_clicked()
             if(i != j) matrix[i][j] = matrix_lambda[j][i];
         }
     }
+
 // замена последнего уравнения на p0+p1+p2+p3 = 1
     for(int j = 0; j<matrix.back().size(); j++)
     {
-        matrix[matrix.size()-1][j] = 1;
+        matrix[matrix.size()-1][j] = 1.0;
     }
 
+//    for(int i = 0; i < matrix.size(); i++)
+//    {
+//        for(int j = 0;j<matrix.back().size(); j++)
+//        {
+//            qDebug() << matrix[i][j] << " ";
+//        }
+//    }
 
 
 //    matrix[0][0] = -3.0;
@@ -166,12 +181,15 @@ void MainWindow::on_pushButton_3_clicked()
         }
     }
     /* Applying Gauss Elimination */
+    ui->lineEdit_3->clear();
     for(i=1;i<=n-1;i++)
     {
       if(a[i][i] == 0.0)
       {
-           qDebug()<<"Mathematical Error!";
-           exit(0);
+//           qDebug()<<"Mathematical Error!";
+//           exit(0);
+           ui->lineEdit_3->setText("Mathematical Error!");
+           return;
       }
       for(j=i+1;j<=n;j++)
       {
@@ -205,6 +223,7 @@ void MainWindow::on_pushButton_3_clicked()
     for(i=1;i<=n;i++)
     {
         p_table.push_back(x[i]);
+//        qDebug() << x[i];
     }
 //    for(int i = 0; i<p_table.size(); i++)
 //        qDebug()<<"p["<< i<<"] = "<< p_table[i];
@@ -231,7 +250,7 @@ for(int i = 0; i< matrix_t.size(); i++)
 {
     result_t.push_back(0.0);
 }
-double eps = 0.2;
+double eps = 0.01;
 int ex = 0;
 QVector <double> Pt(matrix_t.size(), 0.0); //при каждой итоерации пересчитывается вероятность
 Pt[0]=1.0; //Начальные условия вероятностей
@@ -248,7 +267,7 @@ while(true)
         sum_t = 0.0;
         for(int j = 0;j<matrix_lambda.back().size(); j++)
         {
-            sum_t+=matrix_lambda[i][j];
+            if(i != j) sum_t+=matrix_lambda[i][j];
         }
         matrix_t[i][i] = Pt[i]*(1-sum_t*delta_t);
     }
@@ -273,12 +292,20 @@ while(true)
 //        bool x = std::fabs(p_table[i]-sum_tt)<eps;
 //        qDebug() << p_table[i] << " " << sum_tt << " " << x << " "<< std::fabs(p_table[i]-sum_tt)  << delta_tt;
         Pt[i] = sum_tt;
-        if(sum_tt <0.001 && check[i] == 0)
-        {
-            result_t[i]=delta_tt;
-            ex+=1;
-            check[i] = 1;
-        }
+//        if(sum_tt <0.001 && check[i] == 0)
+//        {
+//            result_t[i]=delta_tt;
+//            ex+=1;
+//            check[i] = 1;
+//            for(int i = 0; i < matrix_t.size(); i++)
+//            {
+//                for(int j = 0;j<matrix_t.back().size(); j++)
+//                {
+
+//                    qDebug() << matrix_t[i][j];
+//                }
+//            }
+//        }
         if(std::fabs(p_table[i]-sum_tt) < eps && check[i] == 0)
         {
             result_t[i]=delta_tt;
@@ -290,7 +317,7 @@ while(true)
 //        qDebug()<<sum_tt;
     }
 
-    delta_tt+= 0.0001;
+    delta_tt+= 0.001;
 //    delta_t+= 0.001;
     if(ex == result_t.size()) break;
 }
@@ -321,7 +348,7 @@ while(true)
     {
         QString p = QString("P%1").arg(i+1);
         QString valueAsString = QString::number(p_table[i]);
-        QString valueAsString_time = QString::number(result_t[i]*100);
+        QString valueAsString_time = QString::number(result_t[i]);
         model->setItem(i, 0, new QStandardItem(p));
         model->setItem(i, 1, new QStandardItem(valueAsString));
         model->setItem(i, 2, new QStandardItem(valueAsString_time));
